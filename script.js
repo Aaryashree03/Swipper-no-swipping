@@ -1,35 +1,52 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const scoreElement = document.getElementById("score");
 
-// animation-2 character
+const CANVAS_WIDTH = canvas.width;
+const CANVAS_HEIGHT = canvas.height;
+
+const ROW = 4;
+const ROW_WIDTH = CANVAS_WIDTH;
+const ROW_HEIGHT = CANVAS_HEIGHT / ROW;
+
+const SIZE = ROW_HEIGHT;
+
+// animation character
 const character = document.getElementById("character");
-const obstaclee = new Image();
-obstaclee.src = 'obstacle.png';
 
 let player = {
-    w: 80,
-    h: 80,
-    x: 20,
-    y: 200,
-    speed: 1,
-    dx: 0,
-    dy: 0,
+    w: SIZE,
+    h: SIZE,
+    x: 0,
+    y: Math.floor(Math.random() * (CANVAS_HEIGHT / SIZE)) * SIZE,
+    speed: 0.09,
     progress: 0,
 };
 
 let obstacles = [];
+let obstacleImages = [];
+
 let score = 0;
 let level = 1;
+let gameOver = false;
 
 function spawnObstacle() {
+    const obstacleImage = new Image();
+    obstacleImage.src = `bird${Math.floor(Math.random() * 3) + 1}.png`;
+
     const newObstacle = {
-        w: 50,
-        h: 50,
-        x: canvas.width + Math.random() * canvas.width,
-        y: [50, 200, 350, 500][Math.floor(Math.random() * 4)],
-        speed: 6 // Increase obstacle speed with each level
+        w: SIZE,
+        h: SIZE,
+        displayWidth: SIZE - SIZE * 0.5,
+        displayHeight: SIZE - SIZE * 0.5,
+        x: CANVAS_WIDTH + Math.floor(Math.random() * (ROW_WIDTH / SIZE)) * SIZE,
+        y: Math.floor(Math.random() * (CANVAS_HEIGHT / SIZE)) * SIZE,
+        // displayX: this.x / 2,
+        // displayY: this.y / 2,
+        speed: 0.09, // Increase obstacle speed with each level
     };
 
+    obstacleImages.push(obstacleImage);
     obstacles.push(newObstacle);
 
     //   if (score % 1000 === 0 && score > 1000) {
@@ -39,7 +56,7 @@ function spawnObstacle() {
 
 function updateObstacles() {
     for (let i = 0; i < obstacles.length; i++) {
-        obstacles[i].x -= obstacles[i].speed;
+        obstacles[i].x -= SIZE * obstacles[i].speed;
 
         // Check if the obstacle has moved off the screen
         if (obstacles[i].x + obstacles[i].w < 0) {
@@ -55,82 +72,49 @@ function updateObstacles() {
     }
 }
 
-
-
 function drawPlayer() {
     ctx.drawImage(character, player.x, player.y, player.w, player.h);
+    ctx.strokeStyle = "blue";
+    ctx.strokeRect(
+        player.x,
+        player.y,
+        player.w,
+        player.h
+    );
 }
+
 function drawObstacles() {
     for (let i = 0; i < obstacles.length; i++) {
-        ctx.drawImage(obstaclee, obstacles[i].x, obstacles[i].y, obstacles[i].w, obstacles[i].h);
+        var centerX = obstacles[i].x + obstacles[i].w / 2;
+        var centerY = obstacles[i].y + obstacles[i].h / 2;
+
+        var smallBoxX = centerX - obstacles[i].displayWidth / 2;
+        var smallBoxY = centerY - obstacles[i].displayHeight / 2;
+
+        ctx.drawImage(
+            obstacleImages[i],
+            smallBoxX,
+            smallBoxY,
+            obstacles[i].displayWidth,
+            obstacles[i].displayHeight
+        );
+
+        ctx.strokeStyle = "red";
+        ctx.strokeRect(
+            obstacles[i].x,
+            obstacles[i].y,
+            obstacles[i].w,
+            obstacles[i].h
+        );
     }
 }
 
-// function update() {
-//     // Increment progress to move along the line
-//     player.progress += player.speed / canvas.width;
-
-//     // Calculate new position based on the path
-//     const pathX = canvas.width * player.progress;
-//     player.x = pathX - player.w / 2;
-
-
-//     // Request animation frame
-//     requestAnimationFrame(update);
-
-//     // Draw player
-//     drawPlayer();
-//     newpos();
-// }
-
-// //Start the animation loop
-// update();
-
-
-function newpos() {
-    player.x += player.dx;
-
-    if (player.dy < 0) {
-        // Move up only if the character is not already on the top line
-        if (player.y > 50 && player.y <= 200) {
-            player.y -= 50;
-        } else if (player.y > 200 && player.y <= 350) {
-            player.y = 200;
-        } else if (player.y > 350 && player.y <= 500) {
-            player.y = 350;
-        }
-    } else if (player.dy > 0) {
-        if (player.y < 500) {
-            player.y += 50;
-        }
-    }
-    detectWalls();
-
-}
-
-let current_time = Date.now();
-
-function animate() {
-    let animate_time = Date.now();
-    let delta_time = animate_time - current_time;
-    if (delta_time > 100) {
-        clear();
-        drawline();
-        drawPlayer();
-        drawObstacles();
-        newpos();
-        updateObstacles();
-        checkCollision();
-        drawScoreAndLevel();
-        current_time = Date.now();
-    }
-    requestAnimationFrame(animate);
-}
 function detectWalls() {
     // left wall
     if (player.x < 0) {
         player.x = 0;
     }
+
     // right wall
     if (player.x + player.w > canvas.width) {
         player.x = canvas.width - player.w;
@@ -147,187 +131,114 @@ function detectWalls() {
     }
 }
 
-function clear() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-}
-function drawline() {
-
-    // set line stroke and line width
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 5;
-
-    // draw a first line
-    ctx.beginPath();
-    ctx.moveTo(0, 50);
-    ctx.lineTo(1000, 50);
-    ctx.stroke();
-    // second line
-    ctx.beginPath();
-    ctx.moveTo(0, 200);
-    ctx.lineTo(1000, 200);
-    ctx.stroke();
-
-    // third line
-    ctx.beginPath();
-    ctx.moveTo(0, 350);
-    ctx.lineTo(1000, 350);
-    ctx.stroke();
-
-    // fourth line
-    ctx.beginPath();
-    ctx.moveTo(0, 500);
-    ctx.lineTo(1000, 500);
-    ctx.stroke();
-    drawScoreAndLevel();
-}
-
-
 function checkCollision() {
     // Simple collision check based on bounding boxes
+    const player_minx = player.x;
+    const player_maxx = player.x + player.w;
+    const player_miny = player.y;
+    const player_maxy = player.y + player.h;
+
     for (let i = 0; i < obstacles.length; i++) {
+        const obstacle_minx = obstacles[i].x;
+        const obstacle_maxx = obstacles[i].x + obstacles[i].w;
+        const obstacle_miny = obstacles[i].y;
+        const obstacle_maxy = obstacles[i].y + obstacles[i].h;
+
         if (
-            player.x < obstacles[i].x + obstacles[i].w &&
-            player.x + player.w > obstacles[i].x &&
-            player.y < obstacles[i].y + obstacles[i].h &&
-            player.y + player.h > obstacles[i].y
+            player_minx < obstacle_maxx &&
+            player_maxx > obstacle_minx &&
+            player_miny < obstacle_maxy &&
+            player_maxy > obstacle_miny
         ) {
             // Collision occurred, you can handle this as needed (e.g., game over)
-            console.log("Collision! Watch out");
+            gameOver = true;
+            alert("Collision! Watch out");
             // restartGame();
-        }
-        else {
+        } else {
             // Player successfully avoided obstacle, increase score
-            score = score + 1
+            score++;
         }
     }
-}
-
-
-function drawScoreAndLevel() {
-    ctx.fillStyle = '#000'; // Set text color to black
-    ctx.font = '24px Arial';
-    ctx.fillText(`Score: ${score} | Level: ${level}`, 10, 30);
 }
 
 function updateScoreDisplay() {
-    document.getElementById('score').textContent = score;
+    scoreElement.innerHTML = score;
 }
 
-// Event listener for the button click to increment the score
-document.getElementById('incrementButton').addEventListener('click', function () {
-    // Increment the score
-    score++;
+function move(direction) {
+    switch (direction) {
+        case "left":
+            player.x -= SIZE;
+            break;
+        case "right":
+            player.x += SIZE;
+            break;
+        case "up":
+            player.y -= SIZE;
+            break;
+        case "down":
+            player.y += SIZE;
+            break;
+        default:
+            break;
+    }
 
-    // Update the score display
+    detectWalls();
+}
+
+document.addEventListener("keydown", handlePlayerMovement);
+function handlePlayerMovement(e) {
+    if (e.key === "ArrowRight" || e.key === "d") {
+        move("right");
+    } else if (e.key === "ArrowLeft" || e.key === "a") {
+        move("left");
+    } else if (e.key === "ArrowUp" || e.key === "w") {
+        move("up");
+    } else if (e.key === "ArrowDown" || e.key === "s") {
+        move("down");
+    }
+}
+
+function clear() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawRow() {
+    for (r = 0; r < ROW; r++) {
+        ctx.strokeStyle = "black";
+        ctx.strokeRect(0, r * ROW_HEIGHT, ROW_WIDTH, ROW_HEIGHT);
+    }
+}
+
+function update() {
+    updateObstacles();
     updateScoreDisplay();
-});
-
-// function restartGame(){
-//     clear();
-//     player={  
-//             x:20,
-//             y:200,
-//             speed:1,
-//             dx:0,
-//             dy:0,
-//             progress: 0,
-//            }
-//            console.log("game restarted");
-//            obstacles.length = 0;
-//            score = 0;
-//            level= 1;
-//            animate();
-// }
-
-// function restartGame(){
-//    player={  
-//     x:20,
-//     y:200,
-//     speed:1,
-//     dx:0,
-//     dy:0,
-//     progress: 0,
-//    }
-//    console.log("game restarted");
-//    obstacles.length = 0;
-//    score = 0;
-//    level= 1;
-//    animate();
-// }
-
-// function restartGame() {
-//     // Reset game variables
-//     player.x = 20;
-//     player.y = 200;
-//     player.speed = 1;
-//     player.dx = 0;
-//     player.dy = 0;
-//     player.progress = 0;
-
-//     obstacles.length = 0;
-//     score = 0;
-//     level = 1;
-
-//     // Restart the game
-//     animate();
-// }
-
-
-function MoveUp() {
-    player.dy = -player.speed;
-    setTimeout(() => {
-        player.dy = 0;
-    }, 100); //
+    checkCollision();
 }
-function MoveDown() {
-    player.dy = player.speed;
-    setTimeout(() => {
-        player.dy = 0;
-    }, 100); //
+
+function draw() {
+    clear();
+
+    drawRow();
+    drawPlayer();
+    drawObstacles();
 }
-function MoveRight() {
-    player.dx = player.speed;
-}
-function MoveLeft() {
-    player.dx = -player.speed;
-}
-function keyDown(e) {
-    if (e.key === 'ArrowRight' || e.key === 'd') {
-        MoveRight();
+
+let current_time = Date.now();
+
+function animate() {
+    let animate_time = Date.now();
+    let delta_time = animate_time - current_time;
+
+    if (delta_time > 1000 / 60) {
+        draw();
+        update();
+        current_time = Date.now();
     }
-    else if (e.key === 'ArrowLeft' || e.key === 'a') {
-        MoveLeft();
-    }
-    if (e.key === 'ArrowUp' || e.key === 'w') {
-        MoveUp();
-    }
-    if (e.key === 'ArrowDown' || e.key === 's') {
-        MoveDown();
+
+    if (gameOver === false) {
+        requestAnimationFrame(animate);
     }
 }
-
-function keyUp(e) {
-    if (
-        e.key == 'Right' ||
-        e.key == 'ArrowRight' ||
-        e.key == 'Left' ||
-        e.key == 'ArrowLeft' ||
-        e.key == 'Up' ||
-        e.key == 'ArrowUp' ||
-        e.key == 'Down' ||
-        e.key == 'ArrowDown'
-    ) {
-        player.dx = 0;
-        player.dy = 0;
-    }
-}
-
-
 
 animate();
-
-
-document.addEventListener('keydown', keyDown);
-document.addEventListener('keyup', keyUp);
-
-
